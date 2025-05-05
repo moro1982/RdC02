@@ -1,0 +1,104 @@
+Instalacion de gSoap
+--------------------
+
+Para compilar los ejecutables "wsdl2h" y "soapcpp2" (los cuales utilizaremos para compilar los archivos ejecutables de servidor y cliente), los instalaremos con el comando "make" de forma manual. 
+
+Para ello, (siguiendo los pasos del archivo "INSTALL.txt" correspondientes a la instalacion de gSOAP en Mac OS X/Unix/Linux sin automake, Bison, y Flex) ejecutamos el comando "make" sobre el "MakefileManual" de las carpetas "wsdl" y "src" de "gsoap":
+
+	$ cd gsoap/src
+    	$ make -f MakefileManual soapcpp2
+	$ cd gsoap/wsdl
+    	$ make -f MakefileManual
+
+Ya tenemos listos los ejecutales para comenzar a trabajar.
+	
+_________________________________________________________________________________________________________________________________________________________
+
+Compilacion de archivos para Servidor y Cliente.
+-------------------------------------------------
+
+1) Ir al sitio http://www.genivia.com/calc.wsdl, para descargar "calc.wsdl"
+
+2) Una vez descargado, abrir el archivo con vscode.
+
+3) En la parte de "Address Location", cambiar la URL por "http://localhost:8080".
+
+4) Ahora, vamos a crear el servidor. Para ello, usamos el siguiente comando:
+
+	> wsdl2h -c -o calc.h calc.wsdl
+
+	** ATENCION!! Si no reconoce el comando, verificar si los archivos ejecutables ("wsdl2h" y "soapcpp2") se encuentran en la carpeta "/bin" (en la raiz del sistema). Durante la compilacion deberian copiarse a dicha carpeta. Si no estan, copiarlos desde las carpetas "gsoap/src" y "gsoap/wsdl" del paquete (donde fueron generados en el apartado inicial), luego de lo cual ya deberian poder utilizarse. ** 
+
+5) Abrimos con el editor el archivo "calc.h" generado. Buscamos que en la linea "service port:" indique "localhost:8080".
+
+6) Ejecutamos el siguiente comando:
+
+	> soapcpp2 -c -S -L calc.h
+
+	** Misma advertencia que en el punto 4) **
+
+7) Borrar los archivos XML de ejemplo.
+
+8) Escribimos el servidor (ver archivo calcs.c):
+
+9) Para hacer la compilacion del servidor:
+
+* En Linux:
+
+	> gcc soapServer.c soapC.c calcs.c -lgsoap -lm -o bcs
+
+	** ATENCION!!! Al intentar compilar, arroja error, ya que no encuentra "stdsoap2.h".
+	** Para subsanarlo, debemos:
+		
+		1) Si tenemos una version de gSoap que no sea 2.08.138, entrar con el editor al archivo "soapStub.h", y modificar la linea de codigo con 		la version actual:
+
+		#if GSOAP_VERSION != 208138
+		# error "GSOAP VERSION 208138 MISMATCH IN GENERATED CODE VERSUS LIBRARY CODE: PLEASE REINSTALL PACKAGE"
+		#endif
+
+		2) Copiar los archivos "stdsoap2.h" y "stdsoap2.c" (ubicados en la carpeta "gsoap" del paquete descargado), a la carpeta raiz del proyecto 		(junto a los otros archivos generados).
+	
+	** A continuacion, usar el COMANDO CORREGIDO:
+	
+	> gcc soapServer.c soapC.c stdsoap2.c calcs.c -lm -o bcs
+
+	** Notese que quitamos "-lgsoap" y agregamos "stdsoap2.c".
+	** IMPORTANTE!!! Recordar que tanto el archivo "stdsoap2.c" como la cabecera "stadsoap2.h" deben estar en la carpeta raiz del proyecto, junto con 	los otros archivos generados. 
+
+* En Windows:	???
+
+10) Una vez compilado, podemos correr el servidor desde la linea de comandos:
+
+	> ./bcs
+
+11) Ahora crearemos el cliente. Primero, corremos de nuevo el comando:
+	
+	> soapcpp2 -c -C -L calc.h
+
+12) Borramos los XML. Verificamos que se haya creado el archivo soapClient.c.
+
+13) Ahora si, escribimos el codigo de un cliente (ver archivo calcc.c):
+
+14) Compilamos el cliente:
+
+	* En Linux: 
+		> gcc soapClient.c soapC.c calcc.c -l gsoap -o bcc
+
+	** CORRECCION!!! Como en el caso del Servidor, el comando corregido es:
+
+		> gcc soapClient.c soapC.c stdsoap2.c calcc.c -lm -o bcc
+
+15) Corremos el servidor en segundo plano:
+
+	> ./bcs
+
+16) Corremos el cliente:
+
+	> ./bcc
+
+
+
+namespace	--> Es una forma de agrupar objetos dentro de un mismo concepto, para que no haya conflictos entre objetos del mismo nombre.
+		--> Ejemplo:
+			int ns2__add();
+
