@@ -2,6 +2,7 @@
     "files.associations": {
         "string.h": "c",
         "stdlib.h": "c",
-        "server_aus_ftp.h": "c"
+        "server_aus_ftp.h": "c",
+        "server_dtp.h": "c"
     }
 }
