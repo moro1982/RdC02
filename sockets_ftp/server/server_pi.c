@@ -5,19 +5,18 @@
 #include <sys/socket.h>
 
 #include "server_pi.h"
-#include "server_aus_ftp.h"
+#include "server_ftp.h"
 
-int is_valid_command(const char *command, char *operation) {
+int is_valid_command(const char *command) {
     int i = 0;
-    if (operation != NULL) {
-        return strcmp(command, operation) == 0 ? 1 : -1;
-    }
+    
     while (valid_commands[i] != NULL) {
         if (strcmp(command, valid_commands[i]) == 0) {
             return arg_commands[i];
         }
         i++;
     }
+
     return -1;  // Comando no válido
 }
 
@@ -48,12 +47,12 @@ int recv_cmd(int socket_descriptor, char *operation, char *param) {
     buffer[strcspn(buffer, "\r\n")] = 0;
     token = strtok(buffer, " ");
     
-    if ( token == NULL || strlen(token) < 3 || (args_number = is_valid_command(token, operation)) < 0 ) {
+    if ( token == NULL || strlen(token) < 3 || (args_number = is_valid_command(token)) < 0 ) {
         fprintf(stderr, "Error: comando no válido.\n");
         return 1;
     }
     
-    strcpy(operation, token);
+    strcpy(operation, token);   // Aquí se producía el Segmentation Fault.
     
     if (!args_number) {
         return 0;   // No hay parámetro, se retorna inmediatamente.

@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#include "server_aus_ftp.h"
+#include "server_ftp.h"
 
 // #define VERSION "1.0"    // Lo cortamos y lo pegamos en "server_dtp.h"
 #define PTODEFAULT 21
@@ -38,6 +38,9 @@ int main(int argc, char const *argv[])
     socklen_t slave_addr_len;
     char user_name[BUFSIZE];
     char user_pass[BUFSIZE];
+    char buffer[BUFSIZE];
+    char command[BUFSIZE];
+    int data_len;
 
     master_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -50,27 +53,74 @@ int main(int argc, char const *argv[])
     listen(master_socket, 5);
 
     while (true) {
+
         slave_addr_len = sizeof(slave_addr);
+
+        // Acepta conexión del socket
         slave_socket = accept(master_socket, (struct sockaddr *) &slave_addr, &slave_addr_len);
+
         // Envía al cliente mensaje de confirmación.
-        if (send(slave_socket, MSG_220, sizeof(MSG_220) - 1, 0) != sizeof(MSG_220) - 1) {
+        if ( send(slave_socket, MSG_220, sizeof(MSG_220) - 1, 0) != sizeof(MSG_220) - 1 ) {
             close(slave_socket); 
             fprintf(stderr, "Error: Falló el envío del mensaje.\n");
             break;
         }
+
         // Recibe el mensaje del cliente con el comando USER (y el nombre de usuario).
-        if (recv_cmd(slave_socket, "USER", user_name) != 0) {
+        if ( recv_cmd(slave_socket, command, user_name) != 0 ) {
             close(slave_socket);
             fprintf(stderr, "Error: no se pudo recibir el comando USER.\n");
             break;
         }
+
+        // Verificamos si el comando es "USER"
+        if (strcmp(command, "USER") != 0) {
+            close(slave_socket);
+            fprintf(stderr, "Error: se esperaba el comando USER.\n");
+            continue;
+        }
+        
+        // Envía el mensaje 331 tras recibir el mensaje con el comando USER
+        data_len = snprintf(buffer, BUFSIZE, MSG_331, user_name);
+        if ( send(slave_socket, MSG_331, data_len, 0) < 0 ) {
+            close(slave_socket);
+            fprintf(stderr, "Error: no se pudo enviar el mensaje MSG_331.\n");
+            break;
+        }
+        
         // Recibe el mensaje del cliente con el comando PASS (y el password).
-        if (recv_cmd(slave_socket, "PASS", user_pass) != 0) {
+        if ( recv_cmd(slave_socket, command, user_pass) != 0 ) {
             close(slave_socket);
             fprintf(stderr, "Error: no se pudo recibir el comando PASS.\n");
             break;
         }
-        
+
+        // Verificamos si el comando es "PASS"
+        if (strcmp(command, "PASS") != 0) {
+            close(slave_socket);
+            fprintf(stderr, "Error: se esperaba el comando PASS.\n");
+            continue;
+        }
+
+        // Verificamos las credenciales (si es false, enviamos mensaje 530).
+        if ( !check_credentials(user_name, user_pass) ) {
+            data_len = snprintf(buffer, BUFSIZE, MSG_530);
+            if (send(slave_socket, buffer, data_len, 0) < 0) {
+                close(slave_socket);
+                fprintf(stderr, "Error: no se pudo enviar el mensaje MSG_530.\n");
+                break;
+            }
+            close(slave_socket);
+            continue;
+        }
+
+        // Enviamos el mensaje 230 tras confirmar el login
+        data_len = snprintf(buffer, BUFSIZE, MSG_230, user_name);
+        if ( send(slave_socket, MSG_230, data_len, 0) < 0 ) {
+            close(slave_socket);
+            fprintf(stderr, "Error: no se pudo enviar el mensaje MSG_230.\n");
+            break;
+        }
     }
 
     close(master_socket);
