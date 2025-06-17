@@ -121,6 +121,13 @@ int main(int argc, char const *argv[])
             fprintf(stderr, "Error: no se pudo enviar el mensaje MSG_230.\n");
             break;
         }
+
+        /** Aquí comienza la recepción y respuesta continua de comandos desde el Servidor */
+
+        // while (1) {
+            // 
+        // }
+        
     }
 
     close(master_socket);
