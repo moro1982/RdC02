@@ -11,7 +11,7 @@
 #include "server_ftp.h"
 
 // #define VERSION "1.0"    // Lo cortamos y lo pegamos en "server_dtp.h"
-#define PTODEFAULT 21
+#define PTODEFAULT 21       // a Refactoring
 
 int main(int argc, char const *argv[])
 {
