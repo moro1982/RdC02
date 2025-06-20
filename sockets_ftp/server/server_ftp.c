@@ -11,7 +11,7 @@
 #include "server_ftp.h"
 
 // #define VERSION "1.0"    // Lo cortamos y lo pegamos en "server_dtp.h"
-#define PTODEFAULT 21       // a Refactoring
+#define PORT_DEFAULT 21       // a Refactoring
 
 int main(int argc, char const *argv[])
 {
@@ -25,7 +25,7 @@ int main(int argc, char const *argv[])
     if (argc == 2) {
         port = atoi(argv[1]);
     } else {
-        port = 21;  // Puerto x default FTP
+        port = PORT_DEFAULT;  // Puerto x default FTP
     }
     
     if (port == 0) {
@@ -43,7 +43,6 @@ int main(int argc, char const *argv[])
     int data_len;
 
     master_socket = socket(AF_INET, SOCK_STREAM, 0);
-
     master_addr.sin_family = AF_INET;
     master_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     master_addr.sin_port = htons(port);
@@ -124,10 +123,38 @@ int main(int argc, char const *argv[])
 
         /** Aquí comienza la recepción y respuesta continua de comandos desde el Servidor */
 
-        // while (1) {
-            // 
-        // }
-        
+        while (1) {
+            if (recv_cmd(slave_socket, command, buffer) != 0) {
+                close(slave_socket);
+                fprintf(stderr, "Error: no se pudo recibir el comando.\n");
+                break;
+            }
+            if (strcasecmp(command, "SYST") == 0) {
+                if ( send(slave_socket, MSG_215, sizeof(MSG_215) - 1, 0) < 0) {
+                    close(slave_socket);
+                    fprintf(stderr, "Error: no se pudo enviar el mensaje MSG_215.\n");
+                    break;
+                }
+                continue;
+            }
+            if (strcasecmp(command, "FEAT") == 0) {
+                if (send(slave_socket, MSG_211, sizeof(MSG_211) - 1, 0) < 0) {
+                    close(slave_socket);
+                    fprintf(stderr, "Error: no se pudo enviar el mensaje MSG_211.\n");
+                    break;
+                }
+                continue;
+            }
+            if (strcasecmp(command, "QUIT") == 0) {
+                if ( send(slave_socket, MSG_221, sizeof(MSG_221) - 1, 0) < 0 ) {
+                    close(slave_socket);
+                    fprintf(stderr, "Error: no se pudo enviar el mensaje MSG_221.\n");
+                    break;
+                }
+                close(slave_socket);
+                break;
+            }
+        }   
     }
 
     close(master_socket);
