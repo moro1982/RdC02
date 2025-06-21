@@ -138,9 +138,9 @@ int main(int argc, char const *argv[])
                 continue;
             }
             if (strcasecmp(command, "FEAT") == 0) {
-                if (send(slave_socket, MSG_211, sizeof(MSG_211) - 1, 0) < 0) {
+                if (send(slave_socket, MSG_502, sizeof(MSG_502) - 1, 0) < 0) {
                     close(slave_socket);
-                    fprintf(stderr, "Error: no se pudo enviar el mensaje MSG_211.\n");
+                    fprintf(stderr, "Error: no se pudo enviar el mensaje MSG_502.\n");
                     break;
                 }
                 continue;
