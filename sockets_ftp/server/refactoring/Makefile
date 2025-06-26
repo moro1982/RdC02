@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=gnu11 -g
 LDFLAGS = 
 
-SRCS = main.c server_ftp.c arguments.c pi.c dtp.c handlers.c
+SRCS = main.c arguments.c server_ftp.c utils.c pi.c dtp.c handlers.c signals.c session.c
 OBJS = $(SRCS:.c=.o)
 TARGET = myftp
 

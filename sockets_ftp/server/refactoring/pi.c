@@ -38,7 +38,7 @@ int welcome(ftp_session_t *sess) {
 
 int getexe_command(ftp_session_t *sess) {
 
-  char buffer[BUFFER_SIZE];
+  char buffer[BUFSIZE];
 
   // Receive string from CC
   ssize_t len = recv(sess->control_sock, buffer, sizeof(buffer) - 1, 0);

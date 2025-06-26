@@ -186,7 +186,7 @@ void server_loop(int socket) {
 		return;
 	}
 	while(1) {
-		if( get_exe_command(current_sess) < 0 ) {
+		if( getexe_command(current_sess) < 0 ) {
 			break;
 		}
 	}

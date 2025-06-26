@@ -45,10 +45,10 @@ int main(int argc, char *argv[])
         // Entering connection loop to start client session and listen for commands.
         server_loop(slave_socket);
         
-        printf("Connection from %s:%d closed\n", client_ip, ntohs(client_addr.sin_port));
+        printf("Connection from %s:%d closed\n", client_ip, ntohs(slave_addr.sin_port));
 
         // NEVER GO HERE
-        close_fd(listen_fd, "listening socket");
+        close_fd(master_socket, "listening socket");
         
         // https://en.cppreference.com/w/c/program/EXIT_status
         return EXIT_SUCCESS;

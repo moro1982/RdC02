@@ -82,8 +82,7 @@ void handle_PORT(const char *args) {
 
   // args -> comando y argumento(s)
   // sess -> datos de la conexion de cliente
-  // data_addr -> 
-  sess->data_addr.
+  // data_addr
 }
 
 void handle_RETR(const char *args) {
