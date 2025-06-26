@@ -4,7 +4,7 @@ LDFLAGS =
 
 SRCS = main.c server_ftp.c arguments.c pi.c dtp.c handlers.c
 OBJS = $(SRCS:.c=.o)
-TARGET = miniftp
+TARGET = myftp
 
 .PHONY: all clean
 
