@@ -1,16 +1,14 @@
+#include "arguments.h"
+#include "server_ftp.h"
+#include "utils.h"
+#include "signals.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/socket.h>
-
-#include "config.h"
-#include "server_ftp.h"
-#include "arguments.h"
+#include <errno.h>
 
 int main(int argc, char *argv[])
 {
@@ -22,28 +20,44 @@ int main(int argc, char *argv[])
 
     printf("Start server on %s %d\n", args.address, args.port);
 
-    int master_socket, slave_socket;
-
-    master_socket = server_init(args.address, args.port);
+    int master_socket = server_init(args.address, args.port);
 
 	if(master_socket < 0) {
 		return EXIT_FAILURE;
 	}
 
-	// setup_signals();
+	setup_signals();
 
 	while(1) {
 		struct sockaddr_in slave_addr;
-		int slave_socket = server_accept(master_socket);	// Estructura del socket creada afuera
+
+        // Accept connection request from new client
+		int slave_socket = server_accept(master_socket, &slave_addr);	// Estructura del socket creada afuera
 		if( slave_socket < 0 ) {
 			continue;
 		}
-		server_loop(slave_socket);	// Funcion "primitiva" creada por nosotros
+
+        // Translate client IP address to text in order to print it.
+        char client_ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &slave_addr.sin_addr, client_ip, sizeof(client_ip));
+        printf("Connection from %s:%d accepted\n", client_ip, ntohs(slave_addr.sin_port));
+
+        // Entering connection loop to start client session and listen for commands.
+        server_loop(slave_socket);
+        
+        printf("Connection from %s:%d closed\n", client_ip, ntohs(client_addr.sin_port));
+
+        // NEVER GO HERE
+        close_fd(listen_fd, "listening socket");
+        
+        // https://en.cppreference.com/w/c/program/EXIT_status
+        return EXIT_SUCCESS;
 	}
 	// No salgo del while
-	// Elimino el "return 0;"
 
+/////////////////////////////////////////////////////////////////////////////////////////////
 
+    /* CÓDIGO VERSIÓN INICIAL */
     // struct sockaddr_in master_addr, slave_addr;
     // socklen_t slave_addr_len;
     // char user_name[BUFSIZE];
