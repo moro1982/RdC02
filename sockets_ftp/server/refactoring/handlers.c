@@ -71,9 +71,22 @@ void handle_TYPE(const char *args) {
   (void)args;
   (void)sess;
 
-  // Placeholder
+  if (!args || strlen(args) == 0) {
+      sess->transfer_type = BINARY;
+      safe_dprintf(sess->control_sock, "Default: Modo binario activado.\n");
+      safe_dprintf(sess->control_sock, MSG_200);
+      return;
+  }
 
-  
+  if (strcmp(args, "I") == 0) {
+      sess->transfer_type = BINARY;
+      safe_dprintf(sess->control_sock, MSG_200);
+  } else if (strcmp(args, "A") == 0) {
+      sess->transfer_type = ASCII;
+      safe_dprintf(sess->control_sock, MSG_200);
+  } else {
+      safe_dprintf(sess->control_sock, MSG_504);
+  }
   
 }
 
@@ -97,10 +110,12 @@ void handle_PORT(const char *args) {
   int port = (p1 * 256) + p2;
   printf("Puerto: %d\n", port);
 
+  // (3) Seteamos data_addr
+  memset(&sess->data_addr, 0, sizeof(sess->data_addr));
   sess->data_addr.sin_family = AF_INET;
   sess->data_addr.sin_port = htons(port);
 
-  // (3) Conectarse al puerto del cliente (modo activo)
+  // (4) Conectarse al puerto del cliente (modo activo)
   if (inet_pton(AF_INET, client_ip, &sess->data_addr.sin_addr) <= 0) {
       safe_dprintf(sess->control_sock, MSG_501);
       return;
@@ -115,7 +130,7 @@ void handle_RETR(const char *args) {
   (void)args;
   (void)sess;
 
-  printf("%s\n", args);
+  // printf("%s\n", args);
 
   if (!args || strlen(args) == 0) {
       safe_dprintf(sess->control_sock, MSG_501);  // No arguments
@@ -126,8 +141,8 @@ void handle_RETR(const char *args) {
   }
 
   // Open file
-  int file = open(args, O_RDONLY);
-  if (file < 0) {
+  FILE *file = fopen(args, "rb");
+  if (!file) {
       safe_dprintf(sess->control_sock, MSG_550, args);  // Archivo no disponible
       return;
   }
@@ -136,7 +151,7 @@ void handle_RETR(const char *args) {
   int data_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (data_socket < 0) {
       safe_dprintf(sess->control_sock, MSG_425);  // Cannot open data connection
-      close(file);
+      fclose(file);
       return;
   }
 
@@ -145,7 +160,7 @@ void handle_RETR(const char *args) {
       safe_dprintf(sess->control_sock, MSG_425);  // Cannot open data connection
       fprintf(stderr, "Falló la conexión de datos:\n");
       perror(NULL);
-      close(file);
+      fclose(file);
       close(data_socket);
       return;
   }
@@ -156,7 +171,7 @@ void handle_RETR(const char *args) {
   // Begin transmission
   char buffer[1024];
   ssize_t bytes;
-  while ((bytes = read(file, buffer, sizeof(buffer))) > 0) {
+  while ((bytes = fread(buffer, 1, sizeof(buffer), file)) > 0) {
       if (send(data_socket, buffer, bytes, 0) != bytes) {
         perror("Error al transmitir bloque.\n");
         break;
@@ -164,7 +179,7 @@ void handle_RETR(const char *args) {
   }
 
   // We close file and socket
-  close(file);
+  fclose(file);
   close(data_socket);
 
   // We send confirmation of transfer
