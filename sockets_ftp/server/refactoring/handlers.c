@@ -1,13 +1,14 @@
 // handlers.c
 
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 #include "responses.h"
 #include "pi.h"
 #include "dtp.h"
 #include "session.h"
 #include "utils.h"
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
 
 void handle_USER(const char *args) {
   
@@ -70,6 +71,8 @@ void handle_TYPE(const char *args) {
   (void)sess;
 
   // Placeholder
+
+  
   
 }
 
@@ -78,11 +81,32 @@ void handle_PORT(const char *args) {
   (void)args;
   (void)sess;
 
-  // Placeholder
-
   // args -> comando y argumento(s)
   // sess -> datos de la conexion de cliente
-  // data_addr
+
+  // (1) Parsear el string: extraer los 6 argumentos del string que acompaña a PORT
+  int h1, h2, h3, h4, p1, p2;
+  sscanf(args, "%d,%d,%d,%d,%d,%d", &h1, &h2, &h3, &h4, &p1, &p2);
+  
+  char client_ip[16];
+  sprintf(client_ip, "%d.%d.%d.%d", h1, h2, h3, h4);
+  printf("IP: %s\n", client_ip);
+
+  // (2) Calcular el puerto de datos: port = (p1 * 256) + p2
+  int port = (p1 * 256) + p2;
+  printf("Puerto: %d\n", port);
+
+  sess->data_addr.sin_family = AF_INET;
+  sess->data_addr.sin_port = htons(port);
+
+  // (3) Conectarse al puerto del cliente (modo activo)
+  if (inet_pton(AF_INET, client_ip, &sess->data_addr.sin_addr) <= 0) {
+      safe_dprintf(sess->control_sock, MSG_501);
+      return;
+  }
+
+  safe_dprintf(sess->control_sock, MSG_200);
+
 }
 
 void handle_RETR(const char *args) {
@@ -106,5 +130,6 @@ void handle_NOOP(const char *args) {
   (void)args;
   (void)sess;
 
-  // Placeholder
+  safe_dprintf(sess->control_sock, MSG_200);
+
 }
