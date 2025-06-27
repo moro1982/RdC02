@@ -130,8 +130,6 @@ void handle_RETR(const char *args) {
   (void)args;
   (void)sess;
 
-  // printf("%s\n", args);
-
   if (!args || strlen(args) == 0) {
       safe_dprintf(sess->control_sock, MSG_501);  // No arguments
   }
@@ -143,7 +141,7 @@ void handle_RETR(const char *args) {
   // Open file
   FILE *file = fopen(args, "rb");
   if (!file) {
-      safe_dprintf(sess->control_sock, MSG_550, args);  // Archivo no disponible
+      safe_dprintf(sess->control_sock, MSG_550, args);  // File unavailable.
       return;
   }
 
@@ -192,7 +190,55 @@ void handle_STOR(const char *args) {
   (void)args;
   (void)sess;
 
-  // Placeholder
+  if (!args || strlen(args) == 0) {
+      safe_dprintf(sess->control_sock, MSG_501);  // No arguments
+  }
+
+  if (sess->data_addr.sin_port == 0) {
+      safe_dprintf(sess->control_sock, MSG_503);  // Falta puerto (comando PORT)
+  }
+
+  // Open new file for saving incoming data
+  FILE *file = fopen(args, "wb");
+  if (!file) {
+      safe_dprintf(sess->control_sock, MSG_550, args);  // File unavailable.
+      return;
+  }
+
+  // Create socket to receive data
+  int data_socket = socket(AF_INET, SOCK_STREAM, 0);
+  if (data_socket < 0) {
+      safe_dprintf(sess->control_sock, MSG_425);  // Cannot open data connection
+      fclose(file);
+      return;
+  }
+
+  // Establish Data Connection
+  if (connect(data_socket, (struct sockaddr *)&sess->data_addr, sizeof(sess->data_addr)) < 0 ) {
+      safe_dprintf(sess->control_sock, MSG_425);  // Cannot open data connection
+      fprintf(stderr, "Falló la conexión de datos:\n");
+      perror(NULL);
+      fclose(file);
+      close(data_socket);
+      return;
+  }
+
+  // Inform client that connection is ready for reception
+  safe_dprintf(sess->control_sock, MSG_150);
+
+  // Begin reception
+  char buffer[1024];
+  ssize_t bytes_recv;
+  while ((bytes_recv = recv(data_socket, buffer, sizeof(buffer), 0)) > 0) {
+      fwrite(buffer, 1, bytes_recv, file);
+  }
+
+  // We close file and socket
+  fclose(file);
+  close(data_socket);
+
+  // We send confirmation of transfer
+  safe_dprintf(sess->control_sock, MSG_226);
 }
 
 void handle_NOOP(const char *args) {
