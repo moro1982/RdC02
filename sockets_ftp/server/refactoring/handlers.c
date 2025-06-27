@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include "responses.h"
 #include "pi.h"
 #include "dtp.h"
@@ -114,7 +115,61 @@ void handle_RETR(const char *args) {
   (void)args;
   (void)sess;
 
-  // Placeholder
+  printf("%s\n", args);
+
+  if (!args || strlen(args) == 0) {
+      safe_dprintf(sess->control_sock, MSG_501);  // No arguments
+  }
+
+  if (sess->data_addr.sin_port == 0) {
+      safe_dprintf(sess->control_sock, MSG_503);  // Falta puerto (comando PORT)
+  }
+
+  // Open file
+  int file = open(args, O_RDONLY);
+  if (file < 0) {
+      safe_dprintf(sess->control_sock, MSG_550, args);  // Archivo no disponible
+      return;
+  }
+
+  // Create socket for data transfer
+  int data_socket = socket(AF_INET, SOCK_STREAM, 0);
+  if (data_socket < 0) {
+      safe_dprintf(sess->control_sock, MSG_425);  // Cannot open data connection
+      close(file);
+      return;
+  }
+
+  // Establish Data Connection
+  if (connect(data_socket, (struct sockaddr *)&sess->data_addr, sizeof(sess->data_addr)) < 0 ) {
+      safe_dprintf(sess->control_sock, MSG_425);  // Cannot open data connection
+      fprintf(stderr, "Falló la conexión de datos:\n");
+      perror(NULL);
+      close(file);
+      close(data_socket);
+      return;
+  }
+
+  // Inform client that connection is ready for transmision
+  safe_dprintf(sess->control_sock, MSG_150);
+
+  // Begin transmission
+  char buffer[1024];
+  ssize_t bytes;
+  while ((bytes = read(file, buffer, sizeof(buffer))) > 0) {
+      if (send(data_socket, buffer, bytes, 0) != bytes) {
+        perror("Error al transmitir bloque.\n");
+        break;
+      }
+  }
+
+  // We close file and socket
+  close(file);
+  close(data_socket);
+
+  // We send confirmation of transfer
+  safe_dprintf(sess->control_sock, MSG_226);
+  
 }
 
 void handle_STOR(const char *args) {
